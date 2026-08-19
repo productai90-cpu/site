@@ -84,72 +84,155 @@
         grid-column: 1/-1;
       }
       .day-scroll {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 6px;
-        width: min(100%, 430px);
-        padding: 2px;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
       }
       .day-card {
-        min-width: 0;
-        min-height: 56px;
-        padding: 6px 3px;
+        flex: 0 0 64px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 1px;
+        gap: 2px;
+        padding: 10px 4px;
         background: #151515;
         border: 1px solid #292929;
         color: #aaa;
         cursor: pointer;
-        font-size: .7rem;
-        transition: .18s;
       }
-      .day-card .dnum { font-size: 1.05rem; font-weight: 800; line-height:1.05; }
-      .day-card .dmonth { font-size: .58rem; color:#666; }
-      .day-card:hover { border-color:#777; }
-      .day-card.selected { background:#fff; color:#000; border-color:#fff; }
-      .day-card.selected .dmonth { color:#555; }
+      .day-card.selected {
+        border-color: #fff;
+        color: #fff;
+        background: #1c1c1c;
+      }
+      .day-card .dnum {
+        font-size: 1.1rem;
+        font-weight: 800;
+      }
       .calendar-toolbar {
-        display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
       }
-      .calendar-label { font-size:.78rem; color:#999; letter-spacing:.5px; }
-      .date-picker-wrap { position:relative; width:38px; height:38px; }
+      .calendar-label {
+        font-size: 0.8rem;
+        color: #999;
+        letter-spacing: 0.5px;
+      }
+      .date-picker-wrap {
+        position: relative;
+        width: 42px;
+        height: 42px;
+      }
       .date-picker-btn {
-        width:38px; height:38px; padding:0; margin:0; box-sizing:border-box; line-height:0;
-        border:1px solid #444; background:#151515; color:#ccc; cursor:pointer;
-        display:flex; align-items:center; justify-content:center; transition:.2s;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        line-height: 0;
+        border: 1px solid #444;
+        background: #151515;
+        color: #ccc;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
       }
-      .date-picker-btn:hover, .date-picker-btn:focus-visible { border-color:#fff; color:#fff; outline:none; }
-      .date-picker-btn svg { display:block; width:17px; height:17px; }
+      .date-picker-btn:hover {
+        border-color: #fff;
+        color: #fff;
+      }
+      .date-picker-btn svg {
+        display: block;
+        width: 18px;
+        height: 18px;
+      }
       .cal-popup {
-        position:absolute; top:44px; right:0; z-index:50;
-        width:min(280px, calc(100vw - 48px)); max-height:min(430px, 70vh); overflow:auto;
-        background:#151515; border:1px solid #333; padding:10px; display:none;
-        box-shadow:0 14px 35px rgba(0,0,0,.55); border-radius:2px;
+        position: absolute;
+        top: 48px;
+        left: 0;
+        z-index: 50;
+        width: 230px;
+        background: #151515;
+        border: 1px solid #333;
+        padding: 10px;
+        display: none;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       }
-      .cal-popup.open { display:block; }
-      .cal-month-title { display:flex; justify-content:space-between; align-items:center; color:#ddd; font-size:.76rem; font-weight:700; padding:0 2px 8px; }
-      .cal-month-title small { color:#666; font-weight:500; }
-      .cal-weekdays, .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-      .cal-head { text-align:center; font-size:.62rem; color:#777; padding:2px 0 5px; }
+      .cal-popup.open {
+        display: grid;
+      }
+      .cal-head {
+        text-align: center;
+        font-size: 0.68rem;
+        color: #777;
+        padding: 2px 0 6px;
+      }
       .cal-cell {
-        aspect-ratio:1; min-width:0; display:flex; align-items:center; justify-content:center;
-        background:#101010; border:1px solid #262626; color:#ccc; font-size:.72rem; padding:0; cursor:pointer;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #101010;
+        border: 1px solid #262626;
+        color: #ccc;
+        font-size: 0.78rem;
+        padding: 0;
+        cursor: pointer;
       }
-      .cal-cell:hover { border-color:#777; }
-      .cal-cell.selected { background:#fff; color:#000; border-color:#fff; }
-      .cal-cell.disabled { opacity:.2; cursor:not-allowed; }
-      .cal-cell.empty { background:transparent; border:none; cursor:default; }
-      .cal-note { color:#555; font-size:.6rem; text-align:center; margin-top:8px; }
-      @media (max-width: 640px) {
-        body { padding:14px; }
-        form#manualForm { grid-template-columns:1fr; padding:12px; }
-        .day-scroll { grid-template-columns:repeat(5, minmax(0,1fr)); gap:5px; width:100%; }
-        .day-card { min-height:52px; padding:5px 2px; }
-        .day-card .dnum { font-size:1rem; }
-        .cal-popup { right:0; width:min(270px, calc(100vw - 40px)); }
+      .cal-cell:hover {
+        border-color: #777;
+      }
+      .cal-cell.selected {
+        background: #fff;
+        color: #000;
+        border-color: #fff;
+      }
+      .cal-cell.empty {
+        background: transparent;
+        border: none;
+        cursor: default;
+      }
+      .day-scroll {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .day-card {
+        flex: 0 0 calc((100% - 30px) / 4);
+        min-width: 74px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 80px;
+        padding: 12px 6px;
+        background: #151515;
+        border: 1px solid #333;
+        color: #bbb;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .day-card .dnum {
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+      .day-card:hover {
+        border-color: #777;
+      }
+      .day-card.selected {
+        border-color: #fff;
+        background: #fff;
+        color: #000;
       }
       .time-grid {
         display: grid;
@@ -231,8 +314,7 @@
               <button
                 type="button"
                 class="date-picker-btn"
-                aria-label="باز کردن تقویم شمسی"
-                aria-expanded="false"
+                aria-label="انتخاب مستقیم تاریخ از تقویم"
                 onclick="openAdminDatePicker()"
               >
                 <svg
@@ -400,24 +482,20 @@
         mTime = null,
         mTakenTimes = new Set();
 
-      const FA_WEEKDAYS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
-      const faCalendar = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-        year:"numeric", month:"long", day:"numeric", weekday:"long"
-      });
-      function localIso(d) {
-        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
-        return `${y}-${m}-${day}`;
-      }
-      function faParts(d) {
-        const p=Object.fromEntries(faCalendar.formatToParts(d).map(x=>[x.type,x.value]));
-        return {year:p.year, month:p.month, day:p.day, weekday:p.weekday};
-      }
+      const FA_WEEKDAY_INDEX = {
+        شنبه: 0,
+        یکشنبه: 1,
+        دوشنبه: 2,
+        "سه‌شنبه": 3,
+        چهارشنبه: 4,
+        پنجشنبه: 5,
+        جمعه: 6,
+      };
 
       function pickAdminDay(iso) {
         mDay = iso;
         mTime = null;
         document.getElementById("mCalendarPopup").classList.remove("open");
-        document.querySelector(".date-picker-btn")?.setAttribute("aria-expanded","false");
         renderAdminCalendar();
         renderCalendarPopup();
         loadTakenTimesForDay();
@@ -446,46 +524,56 @@
         const root = document.getElementById("mDateCalendar");
         const now = new Date();
         let cells = "";
-        for (let i=0; i<30; i++) {
-          const d=new Date(now); d.setDate(now.getDate()+i);
-          const iso=localIso(d), p=faParts(d), off=d.getDay()===5;
-          cells += `<button type="button" class="day-card ${mDay===iso?"selected":""}" ${off?"disabled":""} onclick="pickAdminDay('${iso}')"><span>${p.weekday}</span><span class="dnum">${p.day}</span><span class="dmonth">${p.month}</span></button>`;
+        for (let i = 0; i < 30; i++) {
+          let d = new Date(now);
+          d.setDate(now.getDate() + i);
+          let iso = d.toISOString().slice(0, 10);
+          let wname = d.toLocaleDateString("fa-IR", { weekday: "short" });
+          let dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+          let dmonth = d.toLocaleDateString("fa-IR", { month: "short" });
+          cells += `<button type="button" class="day-card ${mDay === iso ? "selected" : ""}" onclick="pickAdminDay('${iso}')">
+      <span>${wname}</span><span class="dnum">${dnum}</span><span>${dmonth}</span>
+    </button>`;
         }
-        root.innerHTML=cells;
+        root.innerHTML = cells;
+        if (mDay) {
+          let sel = root.querySelector(".day-card.selected");
+          if (sel) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
+        }
       }
 
       function renderCalendarPopup() {
-        const root=document.getElementById("mCalendarPopup");
-        const now=new Date(), dates=[];
-        for(let i=0;i<30;i++){ const d=new Date(now); d.setDate(now.getDate()+i); dates.push(d); }
-        const groups=new Map();
-        dates.forEach(d=>{ const p=faParts(d), key=`${p.year}-${p.month}`; if(!groups.has(key)) groups.set(key,{year:p.year,month:p.month,dates:[]}); groups.get(key).dates.push(d); });
-        let html="";
-        for(const group of groups.values()){
-          const first=group.dates[0], offset=(first.getDay()+1)%7;
-          let grid="";
-          for(let i=0;i<offset;i++) grid+=`<div class="cal-cell empty"></div>`;
-          group.dates.forEach(d=>{
-            const iso=localIso(d), p=faParts(d), off=d.getDay()===5;
-            grid+=`<button type="button" class="cal-cell ${mDay===iso?"selected":""} ${off?"disabled":""}" ${off?"disabled":""} onclick="pickAdminDay('${iso}')">${p.day}</button>`;
-          });
-          html+=`<section><div class="cal-month-title"><span>${group.month}</span><small>${group.year}</small></div><div class="cal-weekdays">${FA_WEEKDAYS.map(h=>`<div class="cal-head">${h}</div>`).join("")}</div><div class="cal-grid">${grid}</div></section>`;
+        const root = document.getElementById("mCalendarPopup");
+        const now = new Date();
+        const headers = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+        let cells = headers.map((h) => `<div class="cal-head">${h}</div>`).join("");
+        const firstWname = now.toLocaleDateString("fa-IR", { weekday: "long" });
+        const firstOffset = FA_WEEKDAY_INDEX[firstWname] ?? 0;
+        for (let i = 0; i < firstOffset; i++) {
+          cells += `<div class="cal-cell empty"></div>`;
         }
-        root.innerHTML=html+`<div class="cal-note">۳۰ روز آینده · تقویم شمسی · جمعه‌ها تعطیل</div>`;
+        for (let i = 0; i < 30; i++) {
+          let d = new Date(now);
+          d.setDate(now.getDate() + i);
+          let iso = d.toISOString().slice(0, 10);
+          let dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+          cells += `<button type="button" class="cal-cell ${mDay === iso ? "selected" : ""}" onclick="pickAdminDay('${iso}')">${dnum}</button>`;
+        }
+        root.innerHTML = cells;
       }
 
       function openAdminDatePicker() {
-        const popup=document.getElementById("mCalendarPopup");
-        const btn=document.querySelector(".date-picker-btn");
-        const willOpen=!popup.classList.contains("open");
-        popup.classList.toggle("open",willOpen);
-        btn?.setAttribute("aria-expanded",String(willOpen));
-        if(willOpen) renderCalendarPopup();
+        const popup = document.getElementById("mCalendarPopup");
+        const willOpen = !popup.classList.contains("open");
+        popup.classList.toggle("open", willOpen);
+        if (willOpen) renderCalendarPopup();
       }
 
-      document.addEventListener("click",(e)=>{
-        const wrap=document.querySelector(".date-picker-wrap"), popup=document.getElementById("mCalendarPopup");
-        if(wrap && popup && !wrap.contains(e.target)){ popup.classList.remove("open"); document.querySelector(".date-picker-btn")?.setAttribute("aria-expanded","false"); }
+      document.addEventListener("click", (e) => {
+        const wrap = document.querySelector(".date-picker-wrap");
+        if (wrap && !wrap.contains(e.target)) {
+          document.getElementById("mCalendarPopup")?.classList.remove("open");
+        }
       });
 
       function renderAdminTimes() {
