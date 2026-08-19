@@ -1,0 +1,248 @@
+!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <title>پنل مدیریت NH</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: Vazirmatn, Tahoma, sans-serif;
+        background: #0b0b0b;
+        color: #f2f2f2;
+        margin: 0;
+        padding: 24px;
+      }
+      input,
+      select {
+        background: #151515;
+        border: 1px solid #333;
+        color: #fff;
+        padding: 10px;
+        margin: 4px 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        background: #fff;
+        color: #000;
+        border: 0;
+        padding: 10px 18px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      button.danger {
+        background: #2a1414;
+        color: #ff8080;
+        border: 1px solid #522;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #262626;
+        padding: 10px;
+        text-align: right;
+        font-size: 0.85rem;
+      }
+      .badge {
+        padding: 2px 8px;
+        font-size: 0.7rem;
+        border: 1px solid #444;
+      }
+      .badge.manual {
+        background: #1a1a2a;
+        border-color: #446;
+      }
+      .badge.site {
+        background: #141a14;
+        border-color: #464;
+      }
+      .badge.cancelled {
+        opacity: 0.4;
+        text-decoration: line-through;
+      }
+      #loginBox {
+        max-width: 340px;
+        margin: 80px auto;
+      }
+      #panel {
+        display: none;
+        max-width: 1000px;
+        margin: auto;
+      }
+      form#manualForm {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        border: 1px solid #262626;
+        padding: 16px;
+        margin-top: 24px;
+      }
+      form#manualForm button {
+        grid-column: 1/-1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loginBox">
+      <h2>ورود آرایشگر</h2>
+      <input id="email" placeholder="ایمیل" />
+      <input id="password" type="password" placeholder="رمز عبور" />
+      <button onclick="login()">ورود</button>
+      <p id="loginError" style="color: #f66"></p>
+    </div>
+
+    <div id="panel">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <h2>رزروهای NH</h2>
+        <button onclick="logout()">خروج</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>ساعت</th>
+            <th>مشتری</th>
+            <th>مدت</th>
+            <th>منبع</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+
+      <form id="manualForm" onsubmit="addManual(event)">
+        <h3 style="grid-column: 1/-1">
+          مسدود کردن دستی یک تایم (رزرو تلفنی/حضوری)
+        </h3>
+        <input id="mDate" type="date" required />
+        <input id="mTime" type="time" required />
+        <input id="mName" placeholder="نام مشتری (اختیاری)" />
+        <input
+          id="mDuration"
+          type="number"
+          placeholder="مدت به دقیقه"
+          value="45"
+        />
+        <button type="submit">مسدود کردن این تایم</button>
+      </form>
+    </div>
+
+    <script>
+      const sb = window.supabase.createClient(
+        "https://xxxx.supabase.co",
+        "eyJ...",
+      );
+
+      async function login() {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          document.getElementById("loginError").textContent =
+            "ایمیل یا رمز اشتباه است.";
+          return;
+        }
+        await checkSession();
+      }
+      async function logout() {
+        await sb.auth.signOut();
+        location.reload();
+      }
+
+      async function checkSession() {
+        const {
+          data: { session },
+        } = await sb.auth.getSession();
+        if (!session) {
+          return;
+        }
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("panel").style.display = "block";
+        await loadBookings();
+      }
+
+      async function loadBookings() {
+        const { data, error } = await sb
+          .from("bookings")
+          .select("*")
+          .gte("booking_date", new Date().toISOString().slice(0, 10))
+          .order("booking_date")
+          .order("booking_time");
+        if (error) {
+          console.error(error);
+          return;
+        }
+        document.getElementById("rows").innerHTML = data
+          .map(
+            (b) => `
+    <tr>
+      <td>${b.booking_date}</td>
+      <td>${b.booking_time.slice(0, 5)}</td>
+      <td>${b.customer_name || "—"} ${b.customer_phone ? `<br><small>${b.customer_phone}</small>` : ""}</td>
+      <td>${b.total_duration} دقیقه</td>
+      <td><span class="badge ${b.source}">${b.source === "site" ? "سایت" : "دستی"}</span></td>
+      <td><span class="badge ${b.status === "cancelled" ? "cancelled" : ""}">${b.status === "cancelled" ? "لغوشده" : "فعال"}</span></td>
+      <td>${b.status === "confirmed" ? `<button class="danger" onclick="cancelBooking('${b.id}')">لغو</button>` : ""}</td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      async function cancelBooking(id) {
+        if (!confirm("این رزرو لغو شود؟")) return;
+        const { error } = await sb
+          .from("bookings")
+          .update({ status: "cancelled" })
+          .eq("id", id);
+        if (error) {
+          alert("خطا در لغو رزرو");
+          return;
+        }
+        await loadBookings();
+      }
+
+      async function addManual(e) {
+        e.preventDefault();
+        const date = document.getElementById("mDate").value;
+        const time = document.getElementById("mTime").value;
+        const name =
+          document.getElementById("mName").value.trim() || "رزرو حضوری/تلفنی";
+        const duration = +document.getElementById("mDuration").value || 45;
+        const { error } = await sb.from("bookings").insert({
+          booking_date: date,
+          booking_time: time + ":00",
+          customer_name: name,
+          total_duration: duration,
+          status: "confirmed",
+          source: "manual",
+        });
+        if (error) {
+          alert(
+            error.code === "23505"
+              ? "این تایم قبلاً رزرو شده است."
+              : "خطا در ثبت.",
+          );
+          return;
+        }
+        e.target.reset();
+        document.getElementById("mDuration").value = 45;
+        await loadBookings();
+      }
+
+      checkSession();
+    </script>
+  </body>
+</html>
