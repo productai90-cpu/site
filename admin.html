@@ -1,15 +1,20 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>پنل مدیریت NH</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: Vazirmatn, Tahoma, sans-serif;
         background: #0b0b0b;
         color: #f2f2f2;
         margin: 0;
         padding: 24px;
+        overflow-x: hidden;
       }
       input,
       select {
@@ -34,8 +39,19 @@
         color: #ff8080;
         border: 1px solid #522;
       }
+      .table-scroll {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .table-scroll::-webkit-scrollbar {
+        display: none;
+      }
       table {
         width: 100%;
+        min-width: 640px;
         border-collapse: collapse;
         margin-top: 20px;
       }
@@ -45,6 +61,7 @@
         padding: 10px;
         text-align: right;
         font-size: 0.85rem;
+        white-space: nowrap;
       }
       .badge {
         padding: 2px 8px;
@@ -74,41 +91,14 @@
       }
       form#manualForm {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 8px;
         border: 1px solid #262626;
         padding: 16px;
         margin-top: 24px;
       }
-      form#manualForm button {
+      form#manualForm > button {
         grid-column: 1/-1;
-      }
-      .day-scroll {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 6px;
-      }
-      .day-card {
-        flex: 0 0 64px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        padding: 10px 4px;
-        background: #151515;
-        border: 1px solid #292929;
-        color: #aaa;
-        cursor: pointer;
-      }
-      .day-card.selected {
-        border-color: #fff;
-        color: #fff;
-        background: #1c1c1c;
-      }
-      .day-card .dnum {
-        font-size: 1.1rem;
-        font-weight: 800;
       }
       .calendar-toolbar {
         display: flex;
@@ -151,26 +141,69 @@
         width: 18px;
         height: 18px;
       }
+      .cal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 850;
+        display: none;
+      }
+      .cal-backdrop.open {
+        display: block;
+      }
       .cal-popup {
-        position: absolute;
-        top: 48px;
-        left: 0;
-        z-index: 50;
-        width: 230px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 900;
+        width: 280px;
+        max-width: 88vw;
         background: #151515;
         border: 1px solid #333;
-        padding: 10px;
+        padding: 16px;
         display: none;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
       }
       .cal-popup.open {
+        display: block;
+      }
+      .cal-pop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .cal-pop-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #fff;
+      }
+      .cal-nav {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid #333;
+        background: #101010;
+        color: #ccc;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+      .cal-nav:hover {
+        border-color: #777;
+      }
+      .cal-pop-grid {
         display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
       }
       .cal-head {
         text-align: center;
-        font-size: 0.68rem;
+        font-size: 0.7rem;
         color: #777;
         padding: 2px 0 6px;
       }
@@ -182,11 +215,11 @@
         background: #101010;
         border: 1px solid #262626;
         color: #ccc;
-        font-size: 0.78rem;
+        font-size: 0.85rem;
         padding: 0;
         cursor: pointer;
       }
-      .cal-cell:hover {
+      .cal-cell:hover:not(.disabled):not(.empty) {
         border-color: #777;
       }
       .cal-cell.selected {
@@ -199,11 +232,22 @@
         border: none;
         cursor: default;
       }
+      .cal-cell.disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
       .day-scroll {
         display: flex;
         gap: 10px;
         overflow-x: auto;
         padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .day-scroll::-webkit-scrollbar {
+        display: none;
       }
       .day-card {
         flex: 0 0 calc((100% - 30px) / 4);
@@ -236,7 +280,7 @@
       }
       .time-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 10px;
       }
       .time-btn {
@@ -264,6 +308,30 @@
         cursor: not-allowed;
         text-decoration: line-through;
       }
+      @media (max-width: 640px) {
+        body {
+          padding: 14px;
+        }
+        #loginBox {
+          margin: 40px auto;
+        }
+        form#manualForm {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .time-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        th,
+        td {
+          padding: 8px 6px;
+          font-size: 0.78rem;
+        }
+      }
+      @media (max-width: 380px) {
+        .time-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
     </style>
   </head>
   <body>
@@ -287,6 +355,7 @@
         <button onclick="logout()">خروج</button>
       </div>
 
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -301,6 +370,7 @@
         </thead>
         <tbody id="rows"></tbody>
       </table>
+      </div>
 
       <form id="manualForm" onsubmit="addManual(event)">
         <h3 style="grid-column: 1/-1">
@@ -331,6 +401,7 @@
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </button>
+              <div class="cal-backdrop" id="mCalBackdrop" onclick="closeAdminDatePicker()"></div>
               <div class="cal-popup" id="mCalendarPopup"></div>
             </div>
           </div>
@@ -345,12 +416,6 @@
         </div>
 
         <input id="mName" placeholder="نام مشتری (اختیاری)" />
-        <input
-          id="mDuration"
-          type="number"
-          placeholder="مدت به دقیقه"
-          value="45"
-        />
         <button type="submit" style="margin-top: 8px">
           مسدود کردن این تایم
         </button>
@@ -439,7 +504,7 @@
         if (!mTime) return alert("لطفاً یک ساعت رو انتخاب کنید.");
         const name =
           document.getElementById("mName").value.trim() || "رزرو حضوری/تلفنی";
-        const duration = +document.getElementById("mDuration").value || 45;
+        const duration = 45;
         const { error } = await sb.from("bookings").insert({
           booking_date: mDay,
           booking_time: mTime + ":00",
@@ -457,7 +522,6 @@
           return;
         }
         e.target.reset();
-        document.getElementById("mDuration").value = 45;
         mDay = null;
         mTime = null;
         mTakenTimes = new Set();
@@ -491,11 +555,41 @@
         پنجشنبه: 5,
         جمعه: 6,
       };
+      const FA_WEEKDAYS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+      const faLatnFmt = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      });
+      function jParts(d) {
+        const parts = faLatnFmt.formatToParts(d);
+        const o = {};
+        parts.forEach((p) => {
+          if (p.type !== "literal") o[p.type] = parseInt(p.value, 10);
+        });
+        return { y: o.year, m: o.month, d: o.day };
+      }
+      function jMonthStart(refDate) {
+        const jp = jParts(refDate);
+        const start = new Date(refDate);
+        start.setDate(start.getDate() - (jp.d - 1));
+        return start;
+      }
+      function jMonthDays(monthStart) {
+        const jp = jParts(monthStart);
+        const days = [];
+        let cur = new Date(monthStart);
+        while (jParts(cur).m === jp.m) {
+          days.push(new Date(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+        return days;
+      }
 
       function pickAdminDay(iso) {
         mDay = iso;
         mTime = null;
-        document.getElementById("mCalendarPopup").classList.remove("open");
+        closeAdminDatePicker();
         renderAdminCalendar();
         renderCalendarPopup();
         loadTakenTimesForDay();
@@ -542,39 +636,62 @@
         }
       }
 
+      let mViewDate = new Date();
       function renderCalendarPopup() {
         const root = document.getElementById("mCalendarPopup");
         const now = new Date();
-        const headers = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
-        let cells = headers.map((h) => `<div class="cal-head">${h}</div>`).join("");
-        const firstWname = now.toLocaleDateString("fa-IR", { weekday: "long" });
-        const firstOffset = FA_WEEKDAY_INDEX[firstWname] ?? 0;
-        for (let i = 0; i < firstOffset; i++) {
+        const minIso = now.toISOString().slice(0, 10);
+        const maxDate = new Date(now);
+        maxDate.setDate(now.getDate() + 29);
+        const maxIso = maxDate.toISOString().slice(0, 10);
+        const monthStart = jMonthStart(mViewDate);
+        const days = jMonthDays(monthStart);
+        const monthLabel = monthStart.toLocaleDateString("fa-IR", {
+          month: "long",
+          year: "numeric",
+        });
+        const firstOffset =
+          FA_WEEKDAY_INDEX[
+            monthStart.toLocaleDateString("fa-IR", { weekday: "long" })
+          ] ?? 0;
+        let head = `<div class="cal-pop-header"><button type="button" class="cal-nav" onclick="mChangeMonth(-1)">‹</button><span class="cal-pop-title">${monthLabel}</span><button type="button" class="cal-nav" onclick="mChangeMonth(1)">›</button></div>`;
+        let cells = FA_WEEKDAYS.map(
+          (w) => `<div class="cal-head">${w}</div>`,
+        ).join("");
+        for (let i = 0; i < firstOffset; i++)
           cells += `<div class="cal-cell empty"></div>`;
+        days.forEach((d) => {
+          const iso = d.toISOString().slice(0, 10);
+          const dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+          const disabled = iso < minIso || iso > maxIso;
+          const sel = mDay === iso;
+          cells += `<button type="button" class="cal-cell ${disabled ? "disabled" : ""} ${sel ? "selected" : ""}" onclick="pickAdminDay('${iso}')">${dnum}</button>`;
+        });
+        root.innerHTML = head + `<div class="cal-pop-grid">${cells}</div>`;
+      }
+      function mChangeMonth(dir) {
+        const monthStart = jMonthStart(mViewDate);
+        if (dir < 0) {
+          mViewDate = new Date(monthStart);
+          mViewDate.setDate(mViewDate.getDate() - 1);
+        } else {
+          const days = jMonthDays(monthStart);
+          mViewDate = new Date(days[days.length - 1]);
+          mViewDate.setDate(mViewDate.getDate() + 1);
         }
-        for (let i = 0; i < 30; i++) {
-          let d = new Date(now);
-          d.setDate(now.getDate() + i);
-          let iso = d.toISOString().slice(0, 10);
-          let dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
-          cells += `<button type="button" class="cal-cell ${mDay === iso ? "selected" : ""}" onclick="pickAdminDay('${iso}')">${dnum}</button>`;
-        }
-        root.innerHTML = cells;
+        renderCalendarPopup();
       }
 
       function openAdminDatePicker() {
-        const popup = document.getElementById("mCalendarPopup");
-        const willOpen = !popup.classList.contains("open");
-        popup.classList.toggle("open", willOpen);
-        if (willOpen) renderCalendarPopup();
+        document.getElementById("mCalendarPopup").classList.add("open");
+        document.getElementById("mCalBackdrop").classList.add("open");
+        mViewDate = mDay ? new Date(mDay + "T00:00:00") : new Date();
+        renderCalendarPopup();
       }
-
-      document.addEventListener("click", (e) => {
-        const wrap = document.querySelector(".date-picker-wrap");
-        if (wrap && !wrap.contains(e.target)) {
-          document.getElementById("mCalendarPopup")?.classList.remove("open");
-        }
-      });
+      function closeAdminDatePicker() {
+        document.getElementById("mCalendarPopup").classList.remove("open");
+        document.getElementById("mCalBackdrop").classList.remove("open");
+      }
 
       function renderAdminTimes() {
         document.getElementById("mTimeGrid").innerHTML = ADMIN_TIMES.map((t) => {
