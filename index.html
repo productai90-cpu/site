@@ -697,13 +697,89 @@
         height: 16px;
         display: block;
       }
-      .native-date-input {
+      .cal-popup {
         position: absolute;
-        inset: 0;
-        opacity: 0;
+        top: 42px;
+        left: 0;
+        z-index: 50;
+        width: 250px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 10px;
+        display: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+      .cal-popup.open {
+        display: block;
+      }
+      .cal-pop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .cal-pop-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--white);
+      }
+      .cal-nav {
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        border: 1px solid var(--line);
+        background: var(--black2);
+        color: var(--white);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        line-height: 1;
+      }
+      .cal-nav:hover {
+        border-color: #777;
+      }
+      .cal-pop-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+      .cal-head {
+        text-align: center;
+        font-size: 0.68rem;
+        color: var(--gray);
+        padding: 2px 0 6px;
+      }
+      .cal-cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--black2);
+        border: 1px solid var(--line);
+        color: var(--white);
+        font-size: 0.78rem;
+        padding: 0;
+        cursor: pointer;
+      }
+      .cal-cell:hover:not(.disabled):not(.empty) {
+        border-color: #777;
+      }
+      .cal-cell.selected {
+        background: var(--white);
+        color: #000;
+        border-color: var(--white);
+      }
+      .cal-cell.empty {
+        background: transparent;
+        border: none;
+        cursor: default;
+      }
+      .cal-cell.disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
         pointer-events: none;
-        width: 34px;
-        height: 34px;
       }
       .day-scroll {
         display: flex;
@@ -1384,6 +1460,45 @@
     <div class="toast" id="toast"></div>
 
     <script>
+      const FA_WEEKDAYS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+      const FA_WEEKDAY_INDEX = {
+        شنبه: 0,
+        یکشنبه: 1,
+        دوشنبه: 2,
+        سه‌شنبه: 3,
+        چهارشنبه: 4,
+        پنجشنبه: 5,
+        جمعه: 6,
+      };
+      const faLatnFmt = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      });
+      function jParts(d) {
+        const parts = faLatnFmt.formatToParts(d);
+        const o = {};
+        parts.forEach((p) => {
+          if (p.type !== "literal") o[p.type] = parseInt(p.value, 10);
+        });
+        return { y: o.year, m: o.month, d: o.day };
+      }
+      function jMonthStart(refDate) {
+        const jp = jParts(refDate);
+        const start = new Date(refDate);
+        start.setDate(start.getDate() - (jp.d - 1));
+        return start;
+      }
+      function jMonthDays(monthStart) {
+        const jp = jParts(monthStart);
+        const days = [];
+        let cur = new Date(monthStart);
+        while (jParts(cur).m === jp.m) {
+          days.push(new Date(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+        return days;
+      }
       const SUPABASE_URL = "https://tqdjtdgbaropkjcnckwc.supabase.co";
       const SUPABASE_ANON_KEY =
         "sb_publishable_NsPsht-_8YkeLzXlexfnKg_5V4iwKuW";
@@ -1528,37 +1643,81 @@
           let off = d.getDay() === 5;
           cells += `<button class="day-card ${off ? "off" : ""} ${state.day === iso ? "selected" : ""}" ${off ? "disabled" : ""} onclick="pickDay('${iso}','${label}')"><span class="dname">${wname}</span><span class="dnum">${dnum}</span><span class="dmonth">${dmonth}</span></button>`;
         }
-        root.innerHTML = `<div class="calendar-toolbar"><div class="calendar-label">روزهای پیش‌رو</div><div class="date-picker-wrap"><button type="button" class="date-picker-btn" aria-label="انتخاب مستقیم تاریخ از تقویم" onclick="openNativeDatePicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></button><input type="date" id="nativeDate" class="native-date-input" min="${minIso}" max="${maxIso}" value="${state.day || ""}" onchange="onNativeDatePick(this.value)"></div></div><div class="day-scroll">${cells}</div>`;
+        root.innerHTML = `<div class="calendar-toolbar"><div class="calendar-label">روزهای پیش‌رو</div><div class="date-picker-wrap"><button type="button" class="date-picker-btn" aria-label="انتخاب مستقیم تاریخ از تقویم" onclick="openDatePicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></button><div class="cal-popup" id="dCalendarPopup"></div></div></div><div class="day-scroll">${cells}</div>`;
         if (state.day) {
           let sel = root.querySelector(".day-card.selected");
           if (sel) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
         }
       }
-      function openNativeDatePicker() {
-        let inp = document.getElementById("nativeDate");
-        if (inp.showPicker) {
-          try {
-            inp.showPicker();
-          } catch (e) {
-            inp.click();
-          }
+      let dViewDate = new Date();
+      function renderDatePopup() {
+        const root = document.getElementById("dCalendarPopup");
+        const now = new Date();
+        const minIso = now.toISOString().slice(0, 10);
+        const maxDate = new Date(now);
+        maxDate.setDate(now.getDate() + 29);
+        const maxIso = maxDate.toISOString().slice(0, 10);
+        const monthStart = jMonthStart(dViewDate);
+        const days = jMonthDays(monthStart);
+        const monthLabel = monthStart.toLocaleDateString("fa-IR", {
+          month: "long",
+          year: "numeric",
+        });
+        const firstOffset =
+          FA_WEEKDAY_INDEX[
+            monthStart.toLocaleDateString("fa-IR", { weekday: "long" })
+          ] ?? 0;
+        let head = `<div class="cal-pop-header"><button type="button" class="cal-nav" onclick="dChangeMonth(-1)">‹</button><span class="cal-pop-title">${monthLabel}</span><button type="button" class="cal-nav" onclick="dChangeMonth(1)">›</button></div>`;
+        let cells = FA_WEEKDAYS.map(
+          (w) => `<div class="cal-head">${w}</div>`,
+        ).join("");
+        for (let i = 0; i < firstOffset; i++)
+          cells += `<div class="cal-cell empty"></div>`;
+        days.forEach((d) => {
+          const iso = d.toISOString().slice(0, 10);
+          const dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+          const disabled = iso < minIso || iso > maxIso || d.getDay() === 5;
+          const sel = state.day === iso;
+          cells += `<button type="button" class="cal-cell ${disabled ? "disabled" : ""} ${sel ? "selected" : ""}" onclick="onCalPopupPick('${iso}')">${dnum}</button>`;
+        });
+        root.innerHTML = head + `<div class="cal-pop-grid">${cells}</div>`;
+      }
+      function dChangeMonth(dir) {
+        const monthStart = jMonthStart(dViewDate);
+        if (dir < 0) {
+          dViewDate = new Date(monthStart);
+          dViewDate.setDate(dViewDate.getDate() - 1);
         } else {
-          inp.click();
+          const days = jMonthDays(monthStart);
+          dViewDate = new Date(days[days.length - 1]);
+          dViewDate.setDate(dViewDate.getDate() + 1);
+        }
+        renderDatePopup();
+      }
+      function onCalPopupPick(iso) {
+        const d = new Date(iso + "T00:00:00");
+        const wname = d.toLocaleDateString("fa-IR", { weekday: "short" });
+        const dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+        const dmonth = d.toLocaleDateString("fa-IR", { month: "short" });
+        document.getElementById("dCalendarPopup").classList.remove("open");
+        pickDay(iso, `${wname} ${dnum} ${dmonth}`);
+      }
+      function openDatePicker() {
+        const popup = document.getElementById("dCalendarPopup");
+        const willOpen = !popup.classList.contains("open");
+        popup.classList.toggle("open", willOpen);
+        if (willOpen) {
+          dViewDate = state.day
+            ? new Date(state.day + "T00:00:00")
+            : new Date();
+          renderDatePopup();
         }
       }
-      function onNativeDatePick(value) {
-        if (!value) return;
-        let d = new Date(value + "T00:00:00");
-        if (d.getDay() === 5) {
-          toast("جمعه‌ها تعطیل است؛ لطفاً روز دیگری را انتخاب کنید.");
-          renderCalendar();
-          return;
-        }
-        let wname = d.toLocaleDateString("fa-IR", { weekday: "short" });
-        let dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
-        let dmonth = d.toLocaleDateString("fa-IR", { month: "short" });
-        pickDay(value, `${wname} ${dnum} ${dmonth}`);
-      }
+      document.addEventListener("click", (e) => {
+        const wrap = document.querySelector(".date-picker-wrap");
+        if (wrap && !wrap.contains(e.target))
+          document.getElementById("dCalendarPopup")?.classList.remove("open");
+      });
       async function pickDay(iso, label) {
         state.day = iso;
         state.dayLabel = label;
