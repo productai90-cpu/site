@@ -1415,6 +1415,14 @@
         modal.classList.add("open");
         modal.setAttribute("aria-hidden", "false");
         lockScroll();
+        state = {
+          cart: [],
+          day: null,
+          time: null,
+          step: 1,
+          dayLabel: null,
+          timeLabel: null,
+        }; // ← این خط رو اضافه کن
         await loadServices();
         renderServices();
         go(1);
@@ -1442,7 +1450,7 @@
         document.getElementById("serviceList").innerHTML = services
           .map((s) => {
             let sel = state.cart.some((x) => x.id === s.id);
-            return `<button class="pick ${sel ? "selected" : ""}" onclick="toggleService(${s.id})"><span class="pick-info"><strong>${s.name}</strong><small>${s.duration} دقیقه</small></span><span class="pick-indicator">${sel ? "−" : "+"}</span></button>`;
+            return `<button class="pick ${sel ? "selected" : ""}" onclick="toggleService(${s.id})"><span class="pick-info"><strong>${s.name}</strong><small>${s.duration_minutes} دقیقه</small></span><span class="pick-indicator">${sel ? "−" : "+"}</span></button>`;
           })
           .join("");
       }
@@ -1459,7 +1467,7 @@
           ? state.cart
               .map(
                 (s) =>
-                  `<div class="cart-row"><span>${s.name} · ${s.duration} دقیقه</span><button class="pick-indicator selected" style="cursor:pointer" onclick="toggleService(${s.id})" aria-label="حذف">−</button></div>`,
+                  `<div class="cart-row"><span>${s.name} · ${s.duration_minutes} دقیقه</span><button class="pick-indicator selected" style="cursor:pointer" onclick="toggleService(${s.id})" aria-label="حذف">−</button></div>`,
               )
               .join("") +
             `<div class="total"><strong>جمع کل</strong><strong>قیمت هنگام تأیید</strong></div>`
@@ -1468,7 +1476,7 @@
           .filter((s) => !state.cart.some((x) => x.id === s.id))
           .map(
             (s) =>
-              `<button class="pick" onclick="toggleService(${s.id})"><span class="pick-info"><strong>${s.name}</strong><small>${s.duration} دقیقه</small></span><span class="pick-indicator">+</span></button>`,
+              `<button class="pick" onclick="toggleService(${s.id})"><span class="pick-info"><strong>${s.name}</strong><small>${s.duration_minutes} دقیقه</small></span><span class="pick-indicator">+</span></button>`,
           )
           .join("");
       }
@@ -1592,7 +1600,7 @@
       }
       function renderFinal() {
         document.getElementById("finalSummary").innerHTML =
-          `${state.cart.map((s) => `<div class="cart-row"><span>${s.name}</span><strong>${s.duration} دقیقه</strong></div>`).join("")}<div class="cart-row"><span>تاریخ</span><strong>${state.dayLabel || state.day}</strong></div><div class="cart-row"><span>ساعت</span><strong>${state.time}</strong></div><div class="cart-row"><span>مشتری</span><strong>${document.getElementById("name").value || "—"}</strong></div>`;
+          `${state.cart.map((s) => `<div class="cart-row"><span>${s.name}</span><strong>${s.duration_minutes} دقیقه</strong></div>`).join("")}<div class="cart-row"><span>تاریخ</span><strong>${state.dayLabel || state.day}</strong></div><div class="cart-row"><span>ساعت</span><strong>${state.time}</strong></div><div class="cart-row"><span>مشتری</span><strong>${document.getElementById("name").value || "—"}</strong></div>`;
       }
       async function confirmBooking() {
         const name = document.getElementById("name").value.trim();

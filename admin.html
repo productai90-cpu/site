@@ -83,6 +83,33 @@
       form#manualForm button {
         grid-column: 1/-1;
       }
+      .day-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+      .day-card {
+        flex: 0 0 64px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 10px 4px;
+        background: #151515;
+        border: 1px solid #292929;
+        color: #aaa;
+        cursor: pointer;
+      }
+      .day-card.selected {
+        border-color: #fff;
+        color: #fff;
+        background: #1c1c1c;
+      }
+      .day-card .dnum {
+        font-size: 1.1rem;
+        font-weight: 800;
+      }
     </style>
   </head>
   <body>
@@ -125,7 +152,11 @@
         <h3 style="grid-column: 1/-1">
           مسدود کردن دستی یک تایم (رزرو تلفنی/حضوری)
         </h3>
-        <input id="mDate" type="date" required />
+        <div
+          id="mDateCalendar"
+          class="day-scroll"
+          style="margin: 8px 0 4px"
+        ></div>
         <input id="mTime" type="time" required />
         <input id="mName" placeholder="نام مشتری (اختیاری)" />
         <input
@@ -187,7 +218,7 @@
           .map(
             (b) => `
     <tr>
-      <td>${b.booking_date}</td>
+      <td>${new Date(b.booking_date + "T00:00:00").toLocaleDateString("fa-IR", { day: "numeric", month: "short" })}</td>
       <td>${b.booking_time.slice(0, 5)}</td>
       <td>${b.customer_name || "—"} ${b.customer_phone ? `<br><small>${b.customer_phone}</small>` : ""}</td>
       <td>${b.total_duration} دقیقه</td>
@@ -215,7 +246,8 @@
 
       async function addManual(e) {
         e.preventDefault();
-        const date = document.getElementById("mDate").value;
+        if (!mDay) return alert("لطفاً یک روز رو از تقویم انتخاب کنید.");
+        const date = mDay;
         const time = document.getElementById("mTime").value;
         const name =
           document.getElementById("mName").value.trim() || "رزرو حضوری/تلفنی";
@@ -237,11 +269,32 @@
           return;
         }
         e.target.reset();
+        mDay = null;
+        renderAdminCalendar();
         document.getElementById("mDuration").value = 45;
         await loadBookings();
       }
 
       checkSession();
+      let mDay = null;
+      function renderAdminCalendar() {
+        const root = document.getElementById("mDateCalendar");
+        const now = new Date();
+        let cells = "";
+        for (let i = 0; i < 30; i++) {
+          let d = new Date(now);
+          d.setDate(now.getDate() + i);
+          let iso = d.toISOString().slice(0, 10);
+          let wname = d.toLocaleDateString("fa-IR", { weekday: "short" });
+          let dnum = d.toLocaleDateString("fa-IR", { day: "numeric" });
+          let dmonth = d.toLocaleDateString("fa-IR", { month: "short" });
+          cells += `<button type="button" class="day-card ${mDay === iso ? "selected" : ""}" onclick="mDay='${iso}';renderAdminCalendar()">
+      <span>${wname}</span><span class="dnum">${dnum}</span><span>${dmonth}</span>
+    </button>`;
+        }
+        root.innerHTML = cells;
+      }
+      renderAdminCalendar();
     </script>
   </body>
 </html>
