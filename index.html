@@ -2,6 +2,11 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
+    <script>
+      if (history.scrollRestoration) history.scrollRestoration = "manual";
+      if (location.hash)
+        history.replaceState(null, "", location.pathname + location.search);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b0b0b" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1652,6 +1657,7 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeBooking();
       });
+      window.addEventListener("load", () => window.scrollTo(0, 0));
     </script>
   </body>
 </html>
