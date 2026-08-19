@@ -110,6 +110,108 @@
         font-size: 1.1rem;
         font-weight: 800;
       }
+      .calendar-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .calendar-label {
+        font-size: 0.8rem;
+        color: #999;
+        letter-spacing: 0.5px;
+      }
+      .date-picker-wrap {
+        position: relative;
+        width: 42px;
+        height: 42px;
+      }
+      .date-picker-btn {
+        width: 42px;
+        height: 42px;
+        border: 1px solid #444;
+        background: #151515;
+        color: #ccc;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: 0.2s;
+      }
+      .date-picker-btn:hover {
+        border-color: #fff;
+        color: #fff;
+      }
+      .date-picker-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      .native-date-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        width: 42px;
+        height: 42px;
+      }
+      .day-scroll {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .day-card {
+        flex: 0 0 calc((100% - 30px) / 4);
+        min-width: 74px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 80px;
+        padding: 12px 6px;
+        background: #151515;
+        border: 1px solid #333;
+        color: #bbb;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .day-card .dnum {
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+      .day-card:hover {
+        border-color: #777;
+      }
+      .day-card.selected {
+        border-color: #fff;
+        background: #fff;
+        color: #000;
+      }
+      .time-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .time-btn {
+        padding: 16px 6px;
+        background: #151515;
+        border: 1px solid #333;
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: 0.2s;
+      }
+      .time-btn:hover {
+        border-color: #777;
+      }
+      .time-btn.selected {
+        background: #fff;
+        color: #000;
+        border-color: #fff;
+      }
     </style>
   </head>
   <body>
@@ -152,12 +254,49 @@
         <h3 style="grid-column: 1/-1">
           مسدود کردن دستی یک تایم (رزرو تلفنی/حضوری)
         </h3>
-        <div
-          id="mDateCalendar"
-          class="day-scroll"
-          style="margin: 8px 0 4px"
-        ></div>
-        <input id="mTime" type="time" required />
+
+        <div style="grid-column: 1/-1">
+          <div class="calendar-toolbar">
+            <div class="calendar-label">انتخاب روز</div>
+            <div class="date-picker-wrap">
+              <button
+                type="button"
+                class="date-picker-btn"
+                aria-label="انتخاب مستقیم تاریخ از تقویم"
+                onclick="openAdminDatePicker()"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="4" width="18" height="18"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </button>
+              <input
+                type="date"
+                id="mNativeDate"
+                class="native-date-input"
+                onchange="onAdminNativeDatePick(this.value)"
+              />
+            </div>
+          </div>
+          <div class="day-scroll" id="mDateCalendar"></div>
+        </div>
+
+        <div style="grid-column: 1/-1">
+          <div class="calendar-label" style="margin: 16px 0 8px">
+            انتخاب ساعت
+          </div>
+          <div class="time-grid" id="mTimeGrid"></div>
+        </div>
+
         <input id="mName" placeholder="نام مشتری (اختیاری)" />
         <input
           id="mDuration"
@@ -165,7 +304,9 @@
           placeholder="مدت به دقیقه"
           value="45"
         />
-        <button type="submit">مسدود کردن این تایم</button>
+        <button type="submit" style="margin-top: 8px">
+          مسدود کردن این تایم
+        </button>
       </form>
     </div>
 
@@ -247,14 +388,13 @@
       async function addManual(e) {
         e.preventDefault();
         if (!mDay) return alert("لطفاً یک روز رو از تقویم انتخاب کنید.");
-        const date = mDay;
-        const time = document.getElementById("mTime").value;
+        if (!mTime) return alert("لطفاً یک ساعت رو انتخاب کنید.");
         const name =
           document.getElementById("mName").value.trim() || "رزرو حضوری/تلفنی";
         const duration = +document.getElementById("mDuration").value || 45;
         const { error } = await sb.from("bookings").insert({
-          booking_date: date,
-          booking_time: time + ":00",
+          booking_date: mDay,
+          booking_time: mTime + ":00",
           customer_name: name,
           total_duration: duration,
           status: "confirmed",
@@ -269,17 +409,39 @@
           return;
         }
         e.target.reset();
-        mDay = null;
-        renderAdminCalendar();
         document.getElementById("mDuration").value = 45;
+        mDay = null;
+        mTime = null;
+        renderAdminCalendar();
+        renderAdminTimes();
         await loadBookings();
       }
 
       checkSession();
       let mDay = null;
+      const ADMIN_TIMES = [
+        { label: "۱۰:۰۰", value: "10:00" },
+        { label: "۱۱:۰۰", value: "11:00" },
+        { label: "۱۲:۳۰", value: "12:30" },
+        { label: "۱۴:۰۰", value: "14:00" },
+        { label: "۱۵:۳۰", value: "15:30" },
+        { label: "۱۷:۰۰", value: "17:00" },
+        { label: "۱۸:۳۰", value: "18:30" },
+        { label: "۲۰:۰۰", value: "20:00" },
+      ];
+      let mDay = null,
+        mTime = null;
+
       function renderAdminCalendar() {
         const root = document.getElementById("mDateCalendar");
         const now = new Date();
+        const maxDate = new Date(now);
+        maxDate.setDate(now.getDate() + 29);
+        const nativeInput = document.getElementById("mNativeDate");
+        nativeInput.min = now.toISOString().slice(0, 10);
+        nativeInput.max = maxDate.toISOString().slice(0, 10);
+        nativeInput.value = mDay || "";
+
         let cells = "";
         for (let i = 0; i < 30; i++) {
           let d = new Date(now);
@@ -293,7 +455,40 @@
     </button>`;
         }
         root.innerHTML = cells;
+        if (mDay) {
+          let sel = root.querySelector(".day-card.selected");
+          if (sel) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
+        }
       }
+
+      function openAdminDatePicker() {
+        let inp = document.getElementById("mNativeDate");
+        if (inp.showPicker) {
+          try {
+            inp.showPicker();
+          } catch (e) {
+            inp.click();
+          }
+        } else {
+          inp.click();
+        }
+      }
+
+      function onAdminNativeDatePick(value) {
+        if (!value) return;
+        mDay = value;
+        renderAdminCalendar();
+      }
+
+      function renderAdminTimes() {
+        document.getElementById("mTimeGrid").innerHTML = ADMIN_TIMES.map(
+          (t) =>
+            `<button type="button" class="time-btn ${mTime === t.value ? "selected" : ""}" onclick="mTime='${t.value}';renderAdminTimes()">${t.label}</button>`,
+        ).join("");
+      }
+
+      renderAdminCalendar();
+      renderAdminTimes();
       renderAdminCalendar();
     </script>
   </body>
